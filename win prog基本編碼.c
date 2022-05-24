@@ -2,7 +2,7 @@
 #include<stdio.h>
 
 void W_char() {
-	wchar_t* pszText = L"ABCCD";//wchar_t 實際上是 unsigned short,2字節2bytes //"ABCCD"前要加L表示不是單字節字符,而是雙字節數字編碼
+	wchar_t* pszText = L"ABCCD";//wchar_t 實際上是 unsigned short,2字節2bytes用來裝UTF-16(windows編碼) //"ABCCD"前要加L表示不是單字節字符,而是雙字節數字編碼
     
 	int len = wcslen(pszText);//wcslen專用來量度 wchar_t的長度,兩字節兩字節地度,度的是"有效字符",不包'\0',返回值是len
     
