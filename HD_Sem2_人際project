@@ -1,0 +1,98 @@
+------------------------- >>>> 程式安裝batch檔，即"New Text Document" <<<< -------------------------
+
+powershell -command "$user_profile_path = [Environment]::GetFolderPath('UserProfile');$downloadPath = $user_profile_path + '\Downloads\';Expand-Archive -Path ($downloadPath + 'project_08.zip') -DestinationPath $downloadPath;Move-Item -Path ($downloadPath + 'test_03.ps1'), ($downloadPath + 'SearchEngine_Module_test.py') -Destination $downloadPath;Set-ExecutionPolicy Bypass -Scope Process -Force; & ($downloadPath + 'test_03.ps1')"
+
+
+
+
+
+
+------------------------- >>>> 正式安裝的powershell檔，即"test_03.ps1" <<<< -------------------------
+
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin)
+{
+    # 以管理员身份执行整个脚
+    $params = "-ExecutionPolicy Bypass -File $PSCommandPath"
+    Start-Process -FilePath "powershell.exe" -ArgumentList $params -Verb RunAs -Wait
+    Exit 0  # 退出当前非管理员的脚本实例
+}
+
+# 在此处继续执行安装 Chocolatey 的代码
+$scriptUrl = 'https://chocolatey.org/install.ps1'
+$re_pattern = ".*/"
+$file_name = $scriptUrl -replace $re_pattern , ""
+$user_profile_path = [Environment]::GetFolderPath("UserProfile")
+$downloadPath = $user_profile_path + "\Downloads\" + $file_name
+
+$webClient = New-Object System.Net.WebClient
+$webClient.DownloadFile($scriptUrl, $downloadPath)
+
+Set-ExecutionPolicy Bypass -Scope Process -Force
+Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -File $downloadPath" -Wait
+
+#如果chocolatey沒有被加入系統變量, 則加入
+
+$chocoInstallPath = 'C:\ProgramData\chocolatey\bin'
+$existingPath = [Environment]::GetEnvironmentVariable('Path','Machine')
+
+if($existingPath -notlike "*$chocoInstallPath*")
+{
+    $newPath = $existingPath + ";$chocoInstallPath"
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+}
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+
+#安裝python
+choco install python --version=3.12.2 -y -Wait
+
+#1) 找到pip路徑, 2) 加入module名"searchenginepy", 3) 用pip安裝module, 即"searchenginepy"
+$cDrivePath = [System.IO.Path]::GetPathRoot($PWD)
+$pipPath = $cDrivePath + "Python312\Scripts\pip.exe"
+$packageName = "searchenginepy"
+Start-Process -FilePath $pipPath -ArgumentList "install", $packageName -NoNewWindow -Wait
+
+$pattern = "\\([^\\]+)$"
+$replacement = "\SearchEngine_Module_test.py"
+
+$scriptPath = $PSCommandPath -replace $pattern, $replacement
+$Appdata_Roaming_path = [Environment]::GetFolderPath("ApplicationData")
+$idle_path = "C:\ProgramData" + "\Microsoft\Windows\Start Menu\Programs\Python 3.12\IDLE (Python 3.12 64-bit).lnk"
+Start-Process -FilePath $idle_path -ArgumentList $scriptPath
+
+
+
+
+
+
+
+------------------------- >>>> 安裝完成後的python詐騙網站檢測程式，即"SearchEngine_Module_test.py" <<<< -------------------------
+
+import re
+from searchenginepy.Brave import Brave
+
+def my_check(link_to_check):
+    Results=Brave().search(link_to_check)
+
+    for i in Results:
+        i = re.sub("https://","",i)
+        i = re.sub("http://","",i)
+        if "/" in i:
+            i = i.split("/")
+            i = i[0]
+        if i != "" and link_to_check in i:
+            return f"{link_to_check} is a real link"
+    else:
+        return f"Don't click! {link_to_check} a fick link"
+
+def get_input():
+    while True:
+        link_to_check = input("Please type-in the website you want to check : ")
+        link_to_check = re.sub("https://","",link_to_check)
+        link_to_check = re.sub("http://","",link_to_check)
+        if "/" in link_to_check:
+            link_to_check = link_to_check.split("/")
+            link_to_check = link_to_check[0]
+        print(my_check(link_to_check))
+get_input()
